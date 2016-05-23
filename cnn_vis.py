@@ -1,3 +1,4 @@
+import sys
 import argparse, os, tempfile
 from collections import defaultdict
 
@@ -6,6 +7,14 @@ import numpy as np
 from scipy.misc import imresize, imsave, imread
 from scipy.ndimage.filters import gaussian_filter
 
+import os
+os.environ['GLOG_minloglevel'] = '2'  # suprress Caffe verbose prints
+
+import settings
+import site
+site.addsitedir(settings.caffe_root)
+pycaffe_root = settings.caffe_root # substitute your path here
+sys.path.insert(0, pycaffe_root)
 import caffe
 
 
@@ -455,11 +464,11 @@ def build_parser():
   parser = argparse.ArgumentParser()
   
   # CNN options
-  parser.add_argument('--deploy_txt', default='$CAFFE_ROOT/models/bvlc_googlenet/deploy.prototxt')
-  parser.add_argument('--caffe_model', default='$CAFFE_ROOT/models/bvlc_googlenet/bvlc_googlenet.caffemodel')
+  parser.add_argument('--deploy_txt', default=settings.encoder_definition)
+  parser.add_argument('--caffe_model', default=settings.encoder_path)
   parser.add_argument('--batch_size', default=1, type=int)
-  parser.add_argument('--mean_image', default='$CAFFE_ROOT/python/caffe/imagenet/ilsvrc_2012_mean.npy')
-  parser.add_argument('--gpu', type=int, default=0)
+  parser.add_argument('--mean_image', default="/home/anh/src/caffe-fr-chairs/python/caffe/imagenet/ilsvrc_2012_mean.npy")
+  parser.add_argument('--gpu', type=int, default=1)
   
   # Image options
   parser.add_argument('--image_type', default='amplify_layer',
@@ -527,7 +536,7 @@ def main(args):
     caffe.set_mode_cpu()
   else:
     caffe.set_mode_gpu()
-    caffe.set_device(args.gpu)
+    #caffe.set_device(args.gpu)
 
   # Build the net; paths may have CAFFE_ROOT
   proto_file = os.path.expandvars(args.deploy_txt)
