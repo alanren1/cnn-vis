@@ -62,11 +62,11 @@ def get_code(data, layer="fc8"):
   feat = np.copy(caffenet.blobs[layer].data)
   del caffenet
 
-  print "feat shape", feat.shape
+  # print "feat shape", feat.shape
 
   zero_feat = feat[0].copy()[np.newaxis]
 
-  print "feat shape", zero_feat.shape
+  # print "feat shape", zero_feat.shape
 
 
   return zero_feat, data
@@ -81,16 +81,30 @@ def make_step_encoder(net, image, end='fc8'): # xy=0, step_size=1.5, , unit=None
 
   acts = net.forward(data=image, end=end)
 
-  grad_clip = 15.0
-  l1_weight = 1.0
-  l2_weight = 1.0
+  # Activating a single neuron
+  one_hot = np.zeros_like(dst.data)
+  
+  # Move in the direction of increasing activation of the given neuron
+  if end in fc_layers:
+    one_hot.flat[unit] = 1.
+  elif end in conv_layers:
+    one_hot[:, unit, xy, xy] = 1.
+  else:
+    raise Exception("Invalid layer type!")
+  
+  dst.diff[:] = one_hot
 
-  target_data = net.blobs[end].data.copy()
-  target_diff = -l1_weight * np.abs(target_data)
-  target_diff -= l2_weight * np.clip(target_data, -grad_clip, grad_clip)
-  dst.diff[...] = target_diff
+  # The entire layer
+  # grad_clip = 15.0
+  # l1_weight = 1.0
+  # l2_weight = 1.0
 
-  # Get back the gradient at the optimization layer
+  # target_data = net.blobs[end].data.copy()
+  # target_diff = -l1_weight * np.abs(target_data)
+  # target_diff -= l2_weight * np.clip(target_data, -grad_clip, grad_clip)
+  # dst.diff[...] = target_diff
+
+  # # Get back the gradient at the optimization layer
   diffs = net.backward(start=end, diffs=['data'])
 
   return src.diff.copy()
