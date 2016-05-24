@@ -77,6 +77,8 @@ def make_step_encoder(net, image, end='fc8'): # xy=0, step_size=1.5, , unit=None
   src = net.blobs['data'] # input image is stored in Net's 'data' blob
   dst = net.blobs[end]
 
+  print "make_step_encoder image", image.shape
+
   acts = net.forward(data=image, end=end)
 
   grad_clip = 15.0
@@ -140,7 +142,7 @@ def get_cnn_grads(encoder, decoder, topleft, cur_img, regions, net, target_layer
     # data (1, 3, 227, 227)
     # print "data ", data.shape
     output_layer = "deconv0"
-    image_size = (3, 227, 227)
+    image_size = (227, 227, 3)
     topleft = (14, 14)
 
     code, _ = get_code(data, layer="fc6")
