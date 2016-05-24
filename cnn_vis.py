@@ -74,7 +74,7 @@ def get_code(data, layer="fc8"):
 
   return zero_feat, data
 
-def make_step_encoder(net, image, end='fc8'): # xy=0, step_size=1.5, , unit=None):
+def make_step_encoder(net, image, end='fc8', unit=10): # xy=0, step_size=1.5, , unit=None):
   '''Basic gradient ascent step.'''
 
   src = net.blobs['data'] # input image is stored in Net's 'data' blob
@@ -86,7 +86,7 @@ def make_step_encoder(net, image, end='fc8'): # xy=0, step_size=1.5, , unit=None
 
   # Activating a single neuron
   one_hot = np.zeros_like(dst.data)
-  
+
   # Move in the direction of increasing activation of the given neuron
   if end in fc_layers:
     one_hot.flat[unit] = 1.
