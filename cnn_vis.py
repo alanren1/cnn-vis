@@ -20,6 +20,9 @@ import scipy.ndimage as nd
 import scipy.misc
 import scipy.io
 
+fc_layers = ["fc6", "fc7", "fc8", "loss3/classifier", "fc1000", "prob"]
+conv_layers = ["conv1", "conv2", "conv3", "conv4", "conv5"]
+
 def get_code(data, layer="fc8"):
   '''
   Get a code from an image.
