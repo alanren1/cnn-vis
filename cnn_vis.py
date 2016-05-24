@@ -16,125 +16,88 @@ site.addsitedir(settings.caffe_root)
 pycaffe_root = settings.caffe_root # substitute your path here
 sys.path.insert(0, pycaffe_root)
 import caffe
+import scipy.ndimage as nd
+import scipy.misc
+import scipy.io
 
+def get_code(data, layer="fc8"):
+  '''
+  Get a code from an image.
+  '''
 
-def tv_norm(x, beta=2.0, verbose=False, operator='naive'):
-  """
-  Compute the total variation norm and its gradient.
+  # set up the inputs for the net: 
+  # batch_size = 1
+  # image_size = (3, 227, 227)
+  # images = np.zeros((batch_size,) + image_size, dtype='float32')
+
+  # in_image = scipy.misc.imread(path)
+
+  # print "in_image", in_image.shape
   
-  The total variation norm is the sum of the image gradient
-  raised to the power of beta, summed over the image.
-  We approximate the image gradient using finite differences.
-  We use the total variation norm as a regularizer to encourage
-  smoother images.
+  # in_image = in_image[:227,:227,:]
+  # in_image = scipy.misc.imresize(in_image, (image_size[1], image_size[2]))
 
-  Inputs:
-  - x: numpy array of shape (1, C, H, W)
+  # for ni in range(images.shape[0]):
+  #   images[ni] = np.transpose(in_image, (2, 0, 1))
 
-  Returns a tuple of:
-  - loss: Scalar giving the value of the norm
-  - dx: numpy array of shape (1, C, H, W) giving gradient of the loss
-        with respect to the input x.
-  """
-  assert x.shape[0] == 1
-  if operator == 'naive':
-    x_diff = x[:, :, :-1, :-1] - x[:, :, :-1, 1:]
-    y_diff = x[:, :, :-1, :-1] - x[:, :, 1:, :-1]
-  elif operator == 'sobel':
-    x_diff  =  x[:, :, :-2, 2:]  + 2 * x[:, :, 1:-1, 2:]  + x[:, :, 2:, 2:]
-    x_diff -= x[:, :, :-2, :-2] + 2 * x[:, :, 1:-1, :-2] + x[:, :, 2:, :-2]
-    y_diff  =  x[:, :, 2:, :-2]  + 2 * x[:, :, 2:, 1:-1]  + x[:, :, 2:, 2:]
-    y_diff -= x[:, :, :-2, :-2] + 2 * x[:, :, :-2, 1:-1] + x[:, :, :-2, 2:]
-  elif operator == 'sobel_squish':
-    x_diff  =  x[:, :, :-2, 1:-1]  + 2 * x[:, :, 1:-1, 1:-1]  + x[:, :, 2:, 1:-1]
-    x_diff -= x[:, :, :-2, :-2] + 2 * x[:, :, 1:-1, :-2] + x[:, :, 2:, :-2]
-    y_diff  =  x[:, :, 1:-1, :-2]  + 2 * x[:, :, 1:-1, 1:-1]  + x[:, :, 1:-1, 2:]
-    y_diff -= x[:, :, :-2, :-2] + 2 * x[:, :, :-2, 1:-1] + x[:, :, :-2, 2:]
-  else:
-    assert False, 'Unrecognized operator %s' % operator
-  grad_norm2 = x_diff ** 2.0 + y_diff ** 2.0
-  grad_norm2[grad_norm2 < 1e-3] = 1e-3
-  grad_norm_beta = grad_norm2 ** (beta / 2.0)
-  loss = np.sum(grad_norm_beta)
-  dgrad_norm2 = (beta / 2.0) * grad_norm2 ** (beta / 2.0 - 1.0)
-  dx_diff = 2.0 * x_diff * dgrad_norm2
-  dy_diff = 2.0 * y_diff * dgrad_norm2
-  dx = np.zeros_like(x)
-  if operator == 'naive':
-    dx[:, :, :-1, :-1] += dx_diff + dy_diff
-    dx[:, :, :-1, 1:] -= dx_diff
-    dx[:, :, 1:, :-1] -= dy_diff
-  elif operator == 'sobel':
-    dx[:, :, :-2, :-2] += -dx_diff - dy_diff
-    dx[:, :, :-2, 1:-1] += -2 * dy_diff
-    dx[:, :, :-2, 2:] += dx_diff - dy_diff
-    dx[:, :, 1:-1, :-2] += -2 * dx_diff
-    dx[:, :, 1:-1, 2:] += 2 * dx_diff
-    dx[:, :, 2:, :-2] += dy_diff - dx_diff
-    dx[:, :, 2:, 1:-1] += 2 * dy_diff
-    dx[:, :, 2:, 2:] += dx_diff + dy_diff
-  elif operator == 'sobel_squish':
-    dx[:, :, :-2, :-2] += -dx_diff - dy_diff
-    dx[:, :, :-2, 1:-1] += dx_diff -2 * dy_diff
-    dx[:, :, :-2, 2:] += -dy_diff
-    dx[:, :, 1:-1, :-2] += -2 * dx_diff + dy_diff
-    dx[:, :, 1:-1, 1:-1] += 2 * dx_diff + 2 * dy_diff
-    dx[:, :, 1:-1, 2:] += dy_diff
-    dx[:, :, 2:, :-2] += -dx_diff
-    dx[:, :, 2:, 1:-1] += dx_diff
+  # RGB to BGR, because this is what the net wants as input
+  # data = images[:,::-1] 
 
-  
-  def helper(name, x):
-    num_nan = np.isnan(x).sum()
-    num_inf = np.isinf(x).sum()
-    num_zero = (x == 0).sum()
-    print '%s: NaNs: %d infs: %d zeros: %d' % (name, num_nan, num_inf, num_zero)
-  
-  if verbose:
-    print '-' * 40
-    print 'tv_norm debug output'
-    helper('x', x)
-    helper('x_diff', x_diff)
-    helper('y_diff', y_diff)
-    helper('grad_norm2', grad_norm2)
-    helper('grad_norm_beta', grad_norm_beta)
-    helper('dgrad_norm2', dgrad_norm2)
-    helper('dx_diff', dx_diff)
-    helper('dy_diff', dy_diff)
-    helper('dx', dx)
-    print
-  
-  return loss, dx
+  # subtract the ImageNet mean
+  matfile = scipy.io.loadmat('ilsvrc_2012_mean.mat')
+  image_mean = matfile['image_mean']
+  # topleft = ((image_mean.shape[0] - image_size[1])/2, (image_mean.shape[1] - image_size[2])/2)
+  topleft = (14, 14)
+  image_size = (3, 227, 227)
+  image_mean = image_mean[topleft[0]:topleft[0]+image_size[1], topleft[1]:topleft[1]+image_size[2]]
+  del matfile
+  data -= np.expand_dims(np.transpose(image_mean, (2,0,1)), 0) # mean is already BGR
+
+  #initialize the caffenet to extract the features
+  # caffe.set_mode_cpu() # replace by caffe.set_mode_gpu() to run on a GPU
+  caffenet = caffe.Net(settings.encoder_definition, settings.encoder_path, caffe.TEST)
+
+  # run caffenet and extract the features
+  caffenet.forward(data=data)
+  feat = np.copy(caffenet.blobs[layer].data)
+  del caffenet
+
+  print "feat shape", feat.shape
+
+  zero_feat = feat[0].copy()[np.newaxis]
+
+  print "feat shape", zero_feat.shape
 
 
-def p_norm(x, p=6.0, scale=10.0):
-  """
-  Compute the p-norm for an image and its gradient.
-  
-  The p-norm is defined as
+  return zero_feat, data
 
-  |x|_p = (\sum_i |x_i|^p)^(1/p)
+def make_step_encoder(net, image, end='fc8'): # xy=0, step_size=1.5, , unit=None):
+  '''Basic gradient ascent step.'''
 
-  so strictly speaking this fucntion actually computes the pth power of the
-  p-norm.
+  src = net.blobs['data'] # input image is stored in Net's 'data' blob
+  dst = net.blobs[end]
 
-  We use it as a regularizer to prevent individual pixels from getting too big.
-  We don't actually want to drive pixels toward zero; we are more interested in
-  making sure they stay within a reasonable range. This suggests that we divide
-  the pixels by a scaling factor and use a high value of p; as suggested by
-  [1] p=6 tends to work well.
+  acts = net.forward(data=image, end=end)
 
-  Inputs:
-  - x: numpy array of any shape
-  - p: Power for p-norm
-  - scale: Scale for p-norm.
+  grad_clip = 15.0
+  l1_weight = 1.0
+  l2_weight = 1.0
 
-  Returns a tuple of:
-  - loss: Value of the p-norm 
-  """
-  loss = (np.abs(x / scale) ** p).sum()
-  grad = p / scale * np.sign(x / scale) * np.abs(x / scale) ** (p - 1)
-  return loss, grad
+  target_data = net.blobs[end].data.copy()
+  target_diff = -l1_weight * np.abs(target_data)
+  target_diff -= l2_weight * np.clip(target_data, -grad_clip, grad_clip)
+  dst.diff[...] = target_diff
+
+  # Get back the gradient at the optimization layer
+  diffs = net.backward(start=end, diffs=['data'])
+
+  return src.diff.copy()
+
+  # g = diffs['data'][0]
+
+  # grad_norm = norm(g)
+
+  # return src.diff.copy()
 
 
 def rmsprop(dx, cache=None, decay_rate=0.95):
@@ -158,7 +121,7 @@ def rmsprop(dx, cache=None, decay_rate=0.95):
   return step, cache
 
 
-def get_cnn_grads(cur_img, regions, net, target_layer, step_type='amplify_layer', **kwargs):
+def get_cnn_grads(encoder, decoder, topleft, cur_img, regions, net, target_layer, step_type='amplify_layer', **kwargs):
   """
   Inputs:
   - cur_img: 3 x H x W
@@ -173,25 +136,65 @@ def get_cnn_grads(cur_img, regions, net, target_layer, step_type='amplify_layer'
   next_idx = 0
   
   def run_cnn(data):
-    net.forward(data=data)
-    if step_type == 'amplify_layer':
-      l1_weight = kwargs.get('L1_weight', 1.0)
-      l2_weight = kwargs.get('L2_weight', 1.0)
-      grad_clip = kwargs.get('grad_clip', 5)
-      target_data = net.blobs[target_layer].data.copy()
-      target_diff = -l1_weight * np.abs(target_data)
-      target_diff -= l2_weight * np.clip(target_data, -grad_clip, grad_clip)
-      net.blobs[target_layer].diff[...] = target_diff
-    elif step_type == 'amplify_neuron':
-      if 'target_neuron' not in kwargs:
-        raise ValueError('Must specify target_neuron for step_type=amplify_neuron')
-      target_idx = kwargs['target_neuron']
-      net.blobs[target_layer].diff[...] = 0.0
-      net.blobs[target_layer].diff[:, target_idx] = -1.0
-    else:
-      raise ValueError('Unrecognized step_type "%s"' % step_type)
-    net.backward(start=target_layer)
-    return net.blobs['data'].diff.copy()
+
+    # data (1, 3, 227, 227)
+    # print "data ", data.shape
+    output_layer = "deconv0"
+    image_size = (3, 227, 227)
+    topleft = (14, 14)
+
+    code, _ = get_code(data, layer="fc6")
+
+    print ">>> ", code.shape
+
+    # 1. pass the pool5 code to decoder to get an image x0
+    generated = decoder.forward(feat=code)
+    x0 = generated[output_layer]   # 256x256
+
+    # Crop from 256x256 to 227x227
+    cropped_x0 = x0.copy()[:,:,topleft[0]:topleft[0]+image_size[0], topleft[1]:topleft[1]+image_size[1]]
+
+    # 2. pass the image x0 to AlexNet to maximize an unit k
+    # 3. backprop the activation from AlexNet to the image to get an updated image x
+    g = make_step_encoder(encoder, cropped_x0, end="fc8") # xy=0, step_size, , unit=unit)
+
+    return g
+
+    '''
+    ##################################################################
+    # Convert from BGR to RGB because TV works in RGB
+    x = x[:,::-1, :, :]
+
+    # 4. Place the changes in x (227x227) back to x0 (256x256)
+    updated_x0 = x0.copy()
+    # Crop and convert image from RGB back to BGR
+    updated_x0[:,::-1,topleft[0]:topleft[0]+image_size[0], topleft[1]:topleft[1]+image_size[1]] = x.copy()
+
+    # 5. backprop the image to encoder to get an updated pool5 code
+    grad_norm_decoder, updated_code = make_step_decoder(decoder, updated_x0, x0, step_size, start=start_layer, end=output_layer)
+    ##################################################################
+    '''
+
+    # if upper_bound != None:
+    #   print "bounding ----"
+    #   updated_code = np.maximum(updated_code, lower_bound) 
+    #   updated_code = np.minimum(updated_code, upper_bound) 
+
+    # Update code
+    # src.data[:] = updated_code
+    # net.forward(data=data)
+
+    # if step_type == 'amplify_layer':
+    #   l1_weight = kwargs.get('L1_weight', 1.0)
+    #   l2_weight = kwargs.get('L2_weight', 1.0)
+    #   grad_clip = kwargs.get('grad_clip', 5)
+    #   target_data = net.blobs[target_layer].data.copy()
+    #   target_diff = -l1_weight * np.abs(target_data)
+    #   target_diff -= l2_weight * np.clip(target_data, -grad_clip, grad_clip)
+    #   net.blobs[target_layer].diff[...] = target_diff
+    
+    # net.backward(start=target_layer)
+    # return net.blobs['data'].diff.copy()
   
   grads = []
   for region in regions:
@@ -430,6 +433,14 @@ def get_size_sequence(base_size, initial_size, final_size, num_sizes, resize_typ
     widths = np.round(widths).astype('int')
     return zip(heights, widths)
 
+def get_shape(data_shape):
+  if len(data_shape) == 4:
+    # Return (227, 227) from (1, 3, 227, 227) tensor
+    size = (data_shape[2], data_shape[3])
+  else:
+    raise Exception("Data shape invalid.")
+
+  return size
 
 def initialize_img(net_size, initial_image, initial_size, mean_img, scale, blur):
   _, C, H, W = net_size
@@ -555,6 +566,25 @@ def main(args):
   if args.initial_image is None:
     init_img = None
 
+  # Encoder and decoder
+  # networks
+  decoder = caffe.Net(settings.decoder_definition, settings.decoder_path, caffe.TEST)
+  encoder = caffe.Classifier(settings.encoder_definition, settings.encoder_path,
+                         mean = np.float32([104.0, 117.0, 123.0]), # ImageNet mean, training set dependent
+                         channel_swap = (2,1,0)) # the reference model has channels in BGR order instead of RGB
+
+  # Compute top left
+  # Get the input and output sizes
+  output_layer = 'deconv0'
+  data_shape = encoder.blobs['data'].data.shape
+  output_shape = decoder.blobs[output_layer].data.shape
+
+  image_size = get_shape(data_shape)
+  output_size = get_shape(output_shape)
+
+  # The top left offset that we start cropping the output image to get the 227x227 image
+  topleft = ((output_size[0] - image_size[0])/2, (output_size[1] - image_size[1])/2)
+
   # Get size sequence
   base_size = get_base_size(net_size, args.initial_image)
   print 'base_size is %r' % (base_size,)
@@ -593,7 +623,7 @@ def main(args):
 
       for cur_regions in [regions_even, regions_odd]:
         if len(cur_regions) == 0: continue
-        cnn_grad = get_cnn_grads(img, cur_regions, net, args.target_layer,
+        cnn_grad = get_cnn_grads(encoder, decoder, topleft, img, cur_regions, net, args.target_layer,
                        step_type=args.image_type,
                        L1_weight=args.amplify_l1_weight,
                        L2_weight=args.amplify_l2_weight,
@@ -604,15 +634,8 @@ def main(args):
           img_region = img[:, :, y0:y1, x0:x1]
           if init_img is not None:
             init_region = init_img[0, :, y0:y1, x0:x1]
-            p_loss, p_grad = p_norm(img_region - init_region, p=args.alpha, scale=args.p_scale)
-          else:
-            p_loss, p_grad = p_norm(img_region, p=args.alpha, scale=args.p_scale)
-          p_loss_aux, p_grad_aux = p_norm(img_region, p=args.alpha_aux, scale=args.p_scale_aux)
-          tv_loss, tv_grad = tv_norm(img_region / args.tv_reg_scale, beta=args.beta,
-                                     operator=args.tv_grad_operator)
-          tv_grad /= args.tv_reg_scale
           
-          dimg = cnn_grad[region_idx] + args.p_reg * p_grad + args.p_reg_aux * p_grad_aux + tv_reg * tv_grad
+          dimg = cnn_grad[region_idx]
 
           cache = caches.get(region, None)
           step, cache = rmsprop(dimg, cache=cache, decay_rate=args.decay_rate)
@@ -668,15 +691,10 @@ def main(args):
         if should_print:
           print ('Finished iteration %d / %d for size %d / %d' % 
                 (t + 1, args.num_steps, size_idx + 1, len(size_sequence)))
-          print 'p_loss: ', p_loss
-          print 'tv_loss: ', tv_loss
           if args.image_type == 'amplify_neuron':
             target_blob = net.blobs[args.target_layer]
             neuron_val = target_blob.data[:, args.target_neuron].mean()
             print 'mean neuron val: ', neuron_val
-          print 'mean p_grad: ', np.abs(args.p_reg * p_grad).mean()
-          print 'mean p_grad_aux: ', np.abs(args.p_reg_aux * p_grad_aux).mean()
-          print 'mean tv_grad: ', np.abs(tv_reg * tv_grad).mean()
           print 'mean cnn_grad: ', np.abs(cnn_grad).mean()
           print 'step mean, median: ', np.abs(step).mean(), np.median(np.abs(step))
           print 'image mean, std: ', img.mean(), img.std()
