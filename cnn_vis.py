@@ -56,7 +56,7 @@ def get_code(data, layer="fc8"):
   topleft = (14, 14)
   image_size = (3, 227, 227)
   image_mean = image_mean[topleft[0]:topleft[0]+image_size[1], topleft[1]:topleft[1]+image_size[2]]
-  del matfile
+  # del matfile
   data -= np.expand_dims(np.transpose(image_mean, (2,0,1)), 0) # mean is already BGR
 
   #initialize the caffenet to extract the features
