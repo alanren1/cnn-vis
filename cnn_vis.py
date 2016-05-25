@@ -260,6 +260,12 @@ def get_cnn_grads(encoder, decoder, step_size, topleft, cur_img, regions, net, t
     # 5. backprop the image to encoder to get an updated pool5 code
     grad_norm_decoder, updated_code = make_step_decoder(decoder, updated_x0, x0, step_size, start=decoder_input_layer, end=output_layer)
 
+    # 256x256
+    ouput_image = decoder.forward(feat=updated_code)[output_layer]
+    # Crop from 256x256 to 227x227
+    cropped_ouput_image = ouput_image.copy()[:,:,topleft[0]:topleft[0]+image_size[0], topleft[1]:topleft[1]+image_size[1]]
+
+    return cropped_ouput_image
   
   grads = []
   for region in regions:
