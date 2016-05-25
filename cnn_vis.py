@@ -115,7 +115,7 @@ def make_step_decoder(net, x, x0, step_size=1.5, start='pool5', end='fc8'):
   dst.diff.fill(0.)
 
   return grad_norm, src.data[:].copy()
-  
+
 def make_step_encoder(net, image, xy=0, step_size=1.5, end='fc8', unit=None):
 # def make_step_encoder(net, image, end='fc8', unit=10): # xy=0, step_size=1.5, , unit=None):
   '''Basic gradient ascent step.'''
@@ -131,7 +131,7 @@ def make_step_encoder(net, image, xy=0, step_size=1.5, end='fc8', unit=None):
   
   # Move in the direction of increasing activation of the given neuron
   if end in fc_layers:
-    one_hot.flat[unit] = 1.
+    one_hot.flat[unit] = -1.
   elif end in conv_layers:
     one_hot[:, unit, xy, xy] = 1.
   else:
