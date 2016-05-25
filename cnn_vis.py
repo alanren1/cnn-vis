@@ -115,7 +115,7 @@ def make_step_decoder(net, x, x0, step_size=1.5, start='pool5', end='fc8'):
   dst.diff.fill(0.)
 
   return grad_norm, src.data[:].copy()
-  
+
 def make_step_encoder(net, image, xy=0, step_size=1.5, end='fc8', unit=None):
 # def make_step_encoder(net, image, end='fc8', unit=10): # xy=0, step_size=1.5, , unit=None):
   '''Basic gradient ascent step.'''
@@ -717,71 +717,6 @@ def main(args):
           # if args.use_pixel_learning_rates:
           #   step *= pixel_learning_rates[y0:y1, x0:x1]
           img[:, :, y0:y1, x0:x1] = dimg
-
-      if (t + 1) % args.tv_reg_step_iter == 0:
-        tv_reg += args.tv_reg_step
-
-      if (t + 1) % args.learning_rate_decay_iter == 0:
-        learning_rate *= args.learning_rate_decay_fraction
-
-      if (t + 1) % args.output_iter == 0:
-        should_plot_pix = 'plot_pix' in args.iter_behavior
-        should_show = 'show' in args.iter_behavior
-        should_save = 'save' in args.iter_behavior
-        should_print = args.iter_behavior
-
-        if False:
-          values = [img_region.flatten(),
-                    cnn_grad.flatten(),
-                    #(args.p_reg * p_grad).flatten(),
-                    #(tv_reg * tv_grad).flatten()]
-                    (args.p_reg * p_grad + tv_reg * tv_grad).flatten(),
-                    step.flatten()]
-          names = ['pixel', 'cnn grad', 'reg', 'step']
-          subplot_idx = 1
-          for i, (name_i, val_i) in enumerate(zip(names, values)):
-            for j, (name_j, val_j) in enumerate(zip(names, values)):
-              x_min = val_i.min() - 0.1 * np.abs(val_i.min())
-              x_max = val_i.max() + 0.1 * np.abs(val_i.max())
-              y_min = val_j.min() - 0.1 * np.abs(val_j.min())
-              y_max = val_j.max() + 0.1 * np.abs(val_j.max())
-              plt.subplot(len(values), len(values), subplot_idx)
-              plt.scatter(val_i, val_j)
-              plt.plot(np.linspace(x_min, x_max), np.linspace(x_min, x_max), '-k')
-              plt.plot(np.linspace(x_min, x_max), -np.linspace(x_min, x_max), '-k')
-              plt.xlim([x_min, x_max])
-              plt.ylim([y_min, y_max])
-              plt.xlabel(name_i)
-              plt.ylabel(name_j)
-              subplot_idx += 1
-          plt.gcf().set_size_inches(15, 15)
-          plt.show()
-
-        if should_plot_pix:
-          for p, h in pix_history.iteritems():
-            plt.plot(h)
-          plt.show()
-        if should_print:
-          print ('Finished iteration %d / %d for size %d / %d' % 
-                (t + 1, args.num_steps, size_idx + 1, len(size_sequence)))
-          if args.image_type == 'amplify_neuron':
-            target_blob = net.blobs[args.target_layer]
-            neuron_val = target_blob.data[:, args.target_neuron].mean()
-            print 'mean neuron val: ', neuron_val
-          print 'mean cnn_grad: ', np.abs(cnn_grad).mean()
-          print 'step mean, median: ', np.abs(step).mean(), np.median(np.abs(step))
-          print 'image mean, std: ', img.mean(), img.std()
-          print 'mean step / val: ', np.mean(np.abs(step) / np.abs(img_region))
-        img_uint = img_to_uint(img, mean_img, rescale=args.rescale_image)
-        if should_show:
-          plt.imshow(img_uint, interpolation='none')
-          plt.axis('off')
-          plt.gcf().set_size_inches(args.show_width, args.show_height)
-          plt.show()
-        if should_save:
-          name, ext = os.path.splitext(args.output_file)
-          filename = '%s_%d_%d%s' % (name, size_idx + 1, t + 1, ext)
-          imsave(filename, img_uint)
           
           
   img_uint = img_to_uint(img, mean_img, rescale=args.rescale_image)
