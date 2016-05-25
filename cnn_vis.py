@@ -191,6 +191,8 @@ def get_cnn_grads(encoder, decoder, step_size, topleft, cur_img, regions, net, t
     # print "data ", data.shape
     output_layer = "deconv0"
     decoder_input_layer = "feat"
+    encoder_layer = "fc8"
+    unit = 10
     image_size = (227, 227, 3)
     topleft = (14, 14)
 
@@ -209,7 +211,7 @@ def get_cnn_grads(encoder, decoder, step_size, topleft, cur_img, regions, net, t
     # 3. backprop the activation from AlexNet to the image to get an updated image x
     # g = make_step_encoder(encoder, cropped_x0, end="fc8", unit=10) # xy=0, step_size, , unit=unit)
     xy = 0
-    grad_norm_encoder, x, act = make_step_encoder(encoder, cropped_x0, xy, step_size, end=layer, unit=unit)
+    grad_norm_encoder, x, act = make_step_encoder(encoder, cropped_x0, xy, step_size, end=encoder_layer, unit=unit)
 
     # Convert from BGR to RGB because TV works in RGB
     x = x[:,::-1, :, :]
