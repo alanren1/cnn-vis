@@ -178,7 +178,7 @@ def get_cnn_grads(encoder, decoder, topleft, cur_img, regions, net, target_layer
     # 3. backprop the activation from AlexNet to the image to get an updated image x
     g = make_step_encoder(encoder, cropped_x0, end="fc8") # xy=0, step_size, , unit=unit)
     '''
-    g = make_step_encoder(encoder, data, end="fc8") # xy=0, step_size, , unit=unit)
+    g = make_step_encoder(encoder, data, end="fc8", unit=945) # xy=0, step_size, , unit=unit)
 
     return g
 
