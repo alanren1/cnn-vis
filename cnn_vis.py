@@ -267,6 +267,8 @@ def get_cnn_grads(encoder, decoder, step_size, topleft, cur_img, regions, net, t
     print ">>", cropped_ouput_image.shape
     ret_img = patchShow.patchShow(cropped_ouput_image.copy(), in_range=(-120,120))
 
+    print ">>>>", ret_img.shape
+
     return ret_img
   
   grads = []
