@@ -23,6 +23,9 @@ import scipy.io
 fc_layers = ["fc6", "fc7", "fc8", "loss3/classifier", "fc1000", "prob"]
 conv_layers = ["conv1", "conv2", "conv3", "conv4", "conv5"]
 
+matfile = scipy.io.loadmat('ilsvrc_2012_mean.mat')
+image_mean = matfile['image_mean']
+
 def get_code(data, layer="fc8"):
   '''
   Get a code from an image.
@@ -47,8 +50,6 @@ def get_code(data, layer="fc8"):
   # data = images[:,::-1] 
 
   # subtract the ImageNet mean
-  matfile = scipy.io.loadmat('ilsvrc_2012_mean.mat')
-  image_mean = matfile['image_mean']
   # topleft = ((image_mean.shape[0] - image_size[1])/2, (image_mean.shape[1] - image_size[2])/2)
   topleft = (14, 14)
   image_size = (3, 227, 227)
