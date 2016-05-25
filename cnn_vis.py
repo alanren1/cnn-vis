@@ -80,34 +80,29 @@ def get_code(data, layer="fc8"):
 
   return zero_feat, data
 
-def make_step_encoder(net, image, end='fc8', unit=10): # xy=0, step_size=1.5, , unit=None):
+def make_step_encoder(net, image, xy=0, step_size=1.5, end='fc8', unit=None):
+# def make_step_encoder(net, image, end='fc8', unit=10): # xy=0, step_size=1.5, , unit=None):
   '''Basic gradient ascent step.'''
 
   src = net.blobs['data'] # input image is stored in Net's 'data' blob
   dst = net.blobs[end]
 
-  print "make_step_encoder image", image.shape, dst.data.shape
-
   acts = net.forward(data=image, end=end)
 
+  # '''
   # Activating a single neuron
-  # one_hot = np.zeros_like(dst.data)
-  # one_hot.flat[unit] = 1.
-
-  # Move in the direction of increasing activation of the given neuron
-  # if end in fc_layers:
-  #   one_hot.flat[unit] = 1.
-  # elif end in conv_layers:
-  #   one_hot[:, unit, xy, xy] = 1.
-  # else:
-  #   raise Exception("Invalid layer type!")
+  one_hot = np.zeros_like(dst.data)
   
-  # dst.diff[:] = one_hot
-
-  net.blobs[end].diff[...] = 0.0
-  net.blobs[end].diff[:, unit] = -1.0
-
-  # The entire layer
+  # Move in the direction of increasing activation of the given neuron
+  if end in fc_layers:
+    one_hot.flat[unit] = 1.
+  elif end in conv_layers:
+    one_hot[:, unit, xy, xy] = 1.
+  else:
+    raise Exception("Invalid layer type!")
+  
+  dst.diff[:] = one_hot
+  # '''
   # grad_clip = 15.0
   # l1_weight = 1.0
   # l2_weight = 1.0
@@ -117,16 +112,41 @@ def make_step_encoder(net, image, end='fc8', unit=10): # xy=0, step_size=1.5, , 
   # target_diff -= l2_weight * np.clip(target_data, -grad_clip, grad_clip)
   # dst.diff[...] = target_diff
 
-  # # Get back the gradient at the optimization layer
+  # Get back the gradient at the optimization layer
   diffs = net.backward(start=end, diffs=['data'])
+  g = diffs['data'][0]
 
-  return src.diff.copy()
+  # print "g:", g.shape
+  grad_norm = norm(g)
+  obj_act = 0
 
-  # g = diffs['data'][0]
+  # If grad norm is Nan, skip updating
+  if math.isnan(grad_norm):
+      dst.diff.fill(0.)
+      return 1e-12, src.data[:].copy(), obj_act
+  elif grad_norm == 0:
+      dst.diff.fill(0.)
+      return 0, src.data[:].copy(), obj_act
 
-  # grad_norm = norm(g)
+  # Check if the activation of the given unit is increasing
+  if end in fc_layers:
+      fc = acts[end][0]
+      best_unit = fc.argmax()
+      obj_act = fc[unit]
+      
+  elif end in conv_layers:
+      fc = acts[end][0, :, xy, xy]
+      best_unit = fc.argmax()
+      obj_act = fc[unit]
 
-  # return src.diff.copy()
+  print "max: %s [%.2f]\t obj: %s [%.2f]\t norm: [%.2f]" % (best_unit, fc[best_unit], unit, obj_act, grad_norm)
+
+  src.data[:] += step_size/np.abs(g).mean() * g
+
+  # reset objective for next step
+  dst.diff.fill(0.)
+
+  return (grad_norm, src.data[:].copy(), obj_act)
 
 
 def rmsprop(dx, cache=None, decay_rate=0.95):
