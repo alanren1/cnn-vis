@@ -265,7 +265,9 @@ def get_cnn_grads(encoder, decoder, step_size, topleft, cur_img, regions, net, t
     # Crop from 256x256 to 227x227
     cropped_ouput_image = ouput_image.copy()[:,:,topleft[0]:topleft[0]+image_size[0], topleft[1]:topleft[1]+image_size[1]]
 
-    return cropped_ouput_image
+    ret_img = patchShow.patchShow(cropped_ouput_image.copy(), in_range=(-120,120))
+
+    return ret_img
   
   grads = []
   for region in regions:
