@@ -49,6 +49,8 @@ def get_code(data, layer="fc8"):
   # RGB to BGR, because this is what the net wants as input
   # data = images[:,::-1] 
 
+  global image_mean
+  
   # subtract the ImageNet mean
   # topleft = ((image_mean.shape[0] - image_size[1])/2, (image_mean.shape[1] - image_size[2])/2)
   topleft = (14, 14)
