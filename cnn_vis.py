@@ -184,8 +184,6 @@ def get_cnn_grads(encoder, decoder, step_size, topleft, cur_img, regions, net, t
   batch_size = cur_batch.shape[0]
   next_idx = 0
   
-  start_layer 
-
   def run_cnn(data):
 
     # '''
