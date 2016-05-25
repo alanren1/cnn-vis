@@ -85,7 +85,8 @@ def make_step_encoder(net, image, end='fc8', unit=10): # xy=0, step_size=1.5, , 
   acts = net.forward(data=image, end=end)
 
   # Activating a single neuron
-  one_hot = np.zeros_like(dst.data)
+  # one_hot = np.zeros_like(dst.data)
+  # one_hot.flat[unit] = 1.
 
   # Move in the direction of increasing activation of the given neuron
   # if end in fc_layers:
@@ -95,7 +96,10 @@ def make_step_encoder(net, image, end='fc8', unit=10): # xy=0, step_size=1.5, , 
   # else:
   #   raise Exception("Invalid layer type!")
   
-  dst.diff[:] = one_hot
+  # dst.diff[:] = one_hot
+
+  net.blobs[end].diff[...] = 0.0
+  net.blobs[end].diff[:, unit] = -1.0
 
   # The entire layer
   # grad_clip = 15.0
