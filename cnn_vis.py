@@ -19,6 +19,7 @@ import caffe
 import scipy.ndimage as nd
 import scipy.misc
 import scipy.io
+import patchShow
 
 import math
 from numpy.linalg import norm
