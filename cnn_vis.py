@@ -88,12 +88,12 @@ def make_step_encoder(net, image, end='fc8', unit=10): # xy=0, step_size=1.5, , 
   one_hot = np.zeros_like(dst.data)
 
   # Move in the direction of increasing activation of the given neuron
-  if end in fc_layers:
-    one_hot.flat[unit] = 1.
-  elif end in conv_layers:
-    one_hot[:, unit, xy, xy] = 1.
-  else:
-    raise Exception("Invalid layer type!")
+  # if end in fc_layers:
+  #   one_hot.flat[unit] = 1.
+  # elif end in conv_layers:
+  #   one_hot[:, unit, xy, xy] = 1.
+  # else:
+  #   raise Exception("Invalid layer type!")
   
   dst.diff[:] = one_hot
 
