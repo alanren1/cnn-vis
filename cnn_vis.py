@@ -80,7 +80,7 @@ def make_step_encoder(net, image, end='fc8', unit=10): # xy=0, step_size=1.5, , 
   src = net.blobs['data'] # input image is stored in Net's 'data' blob
   dst = net.blobs[end]
 
-  print "make_step_encoder image", image.shape
+  print "make_step_encoder image", image.shape, dst.data.shape
 
   acts = net.forward(data=image, end=end)
 
