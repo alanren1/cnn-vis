@@ -702,7 +702,7 @@ def main(args):
 
       for cur_regions in [regions_even, regions_odd]:
         if len(cur_regions) == 0: continue
-        print "---------- %s" % t
+        print "---------- %s | step size: %s" % (t, step_size)
         cnn_grad = get_cnn_grads(encoder, decoder, step_size, topleft, img, cur_regions, net, args.target_layer,
                        step_type=args.image_type,
                        L1_weight=args.amplify_l1_weight,
