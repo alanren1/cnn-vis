@@ -688,7 +688,7 @@ def main(args):
     pix_history = defaultdict(list)
     pix = [(100, 100), (200, 200), (100, 200), (200, 100)]
 
-    start_step_size = 8.0
+    start_step_size = 4.0
     end_step_size = 1e-10
 
     for t in xrange(args.num_steps):
