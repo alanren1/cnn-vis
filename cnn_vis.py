@@ -210,7 +210,8 @@ def get_cnn_grads(encoder, decoder, step_size, topleft, cur_img, regions, net, t
     # 2. pass the image x0 to AlexNet to maximize an unit k
     # 3. backprop the activation from AlexNet to the image to get an updated image x
     # g = make_step_encoder(encoder, cropped_x0, end="fc8", unit=10) # xy=0, step_size, , unit=unit)
-    grad_norm_encoder, x, act = make_step_encoder(encoder, cropped_x0, xy=0, step_size, end=layer, unit=unit)
+    xy = 0
+    grad_norm_encoder, x, act = make_step_encoder(encoder, cropped_x0, xy, step_size, end=layer, unit=unit)
 
     # Convert from BGR to RGB because TV works in RGB
     x = x[:,::-1, :, :]
