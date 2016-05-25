@@ -25,6 +25,11 @@ conv_layers = ["conv1", "conv2", "conv3", "conv4", "conv5"]
 
 matfile = scipy.io.loadmat('ilsvrc_2012_mean.mat')
 image_mean = matfile['image_mean']
+
+topleft = (14, 14)
+image_size = (3, 227, 227)
+image_mean = image_mean[topleft[0]:topleft[0]+image_size[1], topleft[1]:topleft[1]+image_size[2]]
+  
 image_mean_bgr = np.expand_dims(np.transpose(image_mean.copy(), (2,0,1)), 0)
 
 def get_code(data, layer="fc8"):
@@ -54,9 +59,6 @@ def get_code(data, layer="fc8"):
 
   # subtract the ImageNet mean
   # topleft = ((image_mean.shape[0] - image_size[1])/2, (image_mean.shape[1] - image_size[2])/2)
-  topleft = (14, 14)
-  image_size = (3, 227, 227)
-  image_mean = image_mean[topleft[0]:topleft[0]+image_size[1], topleft[1]:topleft[1]+image_size[2]]
   # del matfile
   data -= image_mean_bgr # mean is already BGR
 
