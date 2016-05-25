@@ -150,7 +150,7 @@ def rmsprop(dx, cache=None, decay_rate=0.95):
   return step, cache
 
 
-def get_cnn_grads(encoder, decoder, topleft, cur_img, regions, net, target_layer, step_type='amplify_layer', **kwargs):
+def get_cnn_grads(encoder, decoder, step_size, topleft, cur_img, regions, net, target_layer, step_type='amplify_layer', **kwargs):
   """
   Inputs:
   - cur_img: 3 x H x W
@@ -164,12 +164,15 @@ def get_cnn_grads(encoder, decoder, topleft, cur_img, regions, net, target_layer
   batch_size = cur_batch.shape[0]
   next_idx = 0
   
+  start_layer 
+
   def run_cnn(data):
 
     # '''
     # data (1, 3, 227, 227)
     # print "data ", data.shape
     output_layer = "deconv0"
+    decoder_input_layer = "feat"
     image_size = (227, 227, 3)
     topleft = (14, 14)
 
@@ -186,16 +189,9 @@ def get_cnn_grads(encoder, decoder, topleft, cur_img, regions, net, target_layer
 
     # 2. pass the image x0 to AlexNet to maximize an unit k
     # 3. backprop the activation from AlexNet to the image to get an updated image x
-    g = make_step_encoder(encoder, cropped_x0, end="fc8", unit=10) # xy=0, step_size, , unit=unit)
-    # '''
+    # g = make_step_encoder(encoder, cropped_x0, end="fc8", unit=10) # xy=0, step_size, , unit=unit)
+    grad_norm_encoder, x, act = make_step_encoder(encoder, cropped_x0, xy=0, step_size, end=layer, unit=unit)
 
-    # Working for pixel optimization
-    # g = make_step_encoder(encoder, data, end="fc8", unit=10) # xy=0, step_size, , unit=unit)
-
-    return g
-
-    '''
-    ##################################################################
     # Convert from BGR to RGB because TV works in RGB
     x = x[:,::-1, :, :]
 
@@ -205,30 +201,8 @@ def get_cnn_grads(encoder, decoder, topleft, cur_img, regions, net, target_layer
     updated_x0[:,::-1,topleft[0]:topleft[0]+image_size[0], topleft[1]:topleft[1]+image_size[1]] = x.copy()
 
     # 5. backprop the image to encoder to get an updated pool5 code
-    grad_norm_decoder, updated_code = make_step_decoder(decoder, updated_x0, x0, step_size, start=start_layer, end=output_layer)
-    ##################################################################
-    '''
+    grad_norm_decoder, updated_code = make_step_decoder(decoder, updated_x0, x0, step_size, start=decoder_input_layer, end=output_layer)
 
-    # if upper_bound != None:
-    #   print "bounding ----"
-    #   updated_code = np.maximum(updated_code, lower_bound) 
-    #   updated_code = np.minimum(updated_code, upper_bound) 
-
-    # Update code
-    # src.data[:] = updated_code
-    # net.forward(data=data)
-
-    # if step_type == 'amplify_layer':
-    #   l1_weight = kwargs.get('L1_weight', 1.0)
-    #   l2_weight = kwargs.get('L2_weight', 1.0)
-    #   grad_clip = kwargs.get('grad_clip', 5)
-    #   target_data = net.blobs[target_layer].data.copy()
-    #   target_diff = -l1_weight * np.abs(target_data)
-    #   target_diff -= l2_weight * np.clip(target_data, -grad_clip, grad_clip)
-    #   net.blobs[target_layer].diff[...] = target_diff
-    
-    # net.backward(start=target_layer)
-    # return net.blobs['data'].diff.copy()
   
   grads = []
   for region in regions:
@@ -650,14 +624,22 @@ def main(args):
     caches = {}
     pix_history = defaultdict(list)
     pix = [(100, 100), (200, 200), (100, 200), (200, 100)]
+
+    start_step_size = 8.0
+    end_step_size = 1e-10
+
     for t in xrange(args.num_steps):
+
+      step_size = start_step_size + ((end_step_size - start_step_size) * t) / args.num_steps
+
+
       for c in [0, 1, 2]:
         for py, px in pix:
           pix_history[(c, py, px)].append(img[0, c, py, px])
 
       for cur_regions in [regions_even, regions_odd]:
         if len(cur_regions) == 0: continue
-        cnn_grad = get_cnn_grads(encoder, decoder, topleft, img, cur_regions, net, args.target_layer,
+        cnn_grad = get_cnn_grads(encoder, decoder, step_size, topleft, img, cur_regions, net, args.target_layer,
                        step_type=args.image_type,
                        L1_weight=args.amplify_l1_weight,
                        L2_weight=args.amplify_l2_weight,
@@ -671,13 +653,13 @@ def main(args):
           
           dimg = cnn_grad[region_idx]
 
-          cache = caches.get(region, None)
-          step, cache = rmsprop(dimg, cache=cache, decay_rate=args.decay_rate)
-          caches[region] = cache
-          step *= learning_rate
-          if args.use_pixel_learning_rates:
-            step *= pixel_learning_rates[y0:y1, x0:x1]
-          img[:, :, y0:y1, x0:x1] += step
+          # cache = caches.get(region, None)
+          # step, cache = rmsprop(dimg, cache=cache, decay_rate=args.decay_rate)
+          # caches[region] = cache
+          # step *= learning_rate
+          # if args.use_pixel_learning_rates:
+          #   step *= pixel_learning_rates[y0:y1, x0:x1]
+          img[:, :, y0:y1, x0:x1] = dimg
 
       if (t + 1) % args.tv_reg_step_iter == 0:
         tv_reg += args.tv_reg_step
