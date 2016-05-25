@@ -235,8 +235,6 @@ def get_cnn_grads(encoder, decoder, step_size, topleft, cur_img, regions, net, t
 
     code, _ = get_code(data, layer="fc6")
 
-    # print ">>> ", code.shape
-
     # 1. pass the pool5 code to decoder to get an image x0
     generated = decoder.forward(feat=code)
     x0 = generated[output_layer]   # 256x256
@@ -266,6 +264,7 @@ def get_cnn_grads(encoder, decoder, step_size, topleft, cur_img, regions, net, t
     # Crop from 256x256 to 227x227
     cropped_ouput_image = ouput_image.copy()[:,:,topleft[0]:topleft[0]+image_size[0], topleft[1]:topleft[1]+image_size[1]]
 
+    print ">>", cropped_ouput_image.shape
     ret_img = patchShow.patchShow(cropped_ouput_image.copy(), in_range=(-120,120))
 
     return ret_img
