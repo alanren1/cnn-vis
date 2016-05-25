@@ -169,7 +169,7 @@ def get_cnn_grads(encoder, decoder, topleft, cur_img, regions, net, target_layer
 
     code, _ = get_code(data, layer="fc6")
 
-    print ">>> ", code.shape
+    # print ">>> ", code.shape
 
     # 1. pass the pool5 code to decoder to get an image x0
     generated = decoder.forward(feat=code)
