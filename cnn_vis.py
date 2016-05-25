@@ -83,6 +83,39 @@ def get_code(data, layer="fc8"):
 
   return zero_feat, data
 
+def make_step_decoder(net, x, x0, step_size=1.5, start='pool5', end='fc8'):
+  '''Basic gradient ascent step.'''
+
+  src = net.blobs[start] # input image is stored in Net's 'data' blob
+  dst = net.blobs[end]
+
+  # L2 distance between init and target vector
+  # Equation (2) in "Visualizing Deep Convolutional Neural Networks Using Natural Pre-Images"
+  # http://arxiv.org/pdf/1512.02017.pdf 
+  net.blobs[end].diff[...] = (x-x0)
+  net.backward(start=end) # back-propagate the inner-product gradient
+  g = net.blobs[start].diff.copy()
+
+  # print "g:", g.shape
+  grad_norm = norm(g)
+  # print " norm decoder: %s" % grad_norm
+  # print "max: %s [%.2f]\t obj: %s [%.2f]\t norm: [%.2f]" % (best_unit, fc[best_unit], unit, obj_act, grad_norm)
+
+  # If norm is Nan, skip updating the image
+  if math.isnan(grad_norm):
+    dst.diff.fill(0.)
+    return 1e-12, src.data[:].copy()  
+  elif grad_norm == 0:
+    dst.diff.fill(0.)
+    return 0, src.data[:].copy()
+
+  src.data[:] += step_size/np.abs(g).mean() * g
+
+  # reset objective for next step
+  dst.diff.fill(0.)
+
+  return grad_norm, src.data[:].copy()
+  
 def make_step_encoder(net, image, xy=0, step_size=1.5, end='fc8', unit=None):
 # def make_step_encoder(net, image, end='fc8', unit=10): # xy=0, step_size=1.5, , unit=None):
   '''Basic gradient ascent step.'''
