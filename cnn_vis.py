@@ -166,7 +166,7 @@ def get_cnn_grads(encoder, decoder, topleft, cur_img, regions, net, target_layer
   
   def run_cnn(data):
 
-    '''
+    # '''
     # data (1, 3, 227, 227)
     # print "data ", data.shape
     output_layer = "deconv0"
@@ -187,10 +187,10 @@ def get_cnn_grads(encoder, decoder, topleft, cur_img, regions, net, target_layer
     # 2. pass the image x0 to AlexNet to maximize an unit k
     # 3. backprop the activation from AlexNet to the image to get an updated image x
     g = make_step_encoder(encoder, cropped_x0, end="fc8", unit=10) # xy=0, step_size, , unit=unit)
-    '''
+    # '''
 
     # Working for pixel optimization
-    g = make_step_encoder(encoder, data, end="fc8", unit=10) # xy=0, step_size, , unit=unit)
+    # g = make_step_encoder(encoder, data, end="fc8", unit=10) # xy=0, step_size, , unit=unit)
 
     return g
 
