@@ -44,6 +44,6 @@ def patchShow_2(images, out_range=(0.,1.), in_range=None, rows=0, cols=0):
   
   result[:] = images[0].transpose((1,2,0))    
   result = normalize(result, out_range, in_range)
-  result[:] = result.transpose((2,1,0))    
+  result[:] = result.transpose((0,1,2))    
   return result
 
